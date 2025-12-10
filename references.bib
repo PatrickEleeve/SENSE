@@ -1,0 +1,281 @@
+%% This BibTeX bibliography file was created using BibDesk.
+%% http://bibdesk.sourceforge.net/
+
+@misc{tibbetts2025surveyheterogeneouscomputingusing,
+      title={A Survey on Heterogeneous Computing Using SmartNICs and Emerging Data Processing Units (Expanded Preprint)}, 
+      author={Nathan Tibbetts and Sifat Ibtisum and Satish Puri},
+      year={2025},
+      eprint={2504.03653},
+      archivePrefix={arXiv},
+      primaryClass={cs.DC},
+      url={https://arxiv.org/abs/2504.03653}, 
+}
+
+@INPROCEEDINGS{9868927,
+  author={Barsellotti, Luca and Alhamed, Faris and Vegas Olmos, Juan Jose and Paolucci, Francesco and Castoldi, Piero and Cugini, Filippo},
+  booktitle={2022 International Conference on Computer Communications and Networks (ICCCN)}, 
+  title={Introducing Data Processing Units (DPU) at the Edge [Invited]}, 
+  year={2022},
+  volume={},
+  number={},
+  pages={1-6},
+  keywords={5G mobile communication;Computational modeling;Image edge detection;Network intrusion detection;Network security;Data processing;Fabrics;P4;smart NIC;in-network functions;DPU;telemetry;security;programmability;programmable data plane},
+  doi={10.1109/ICCCN54977.2022.9868927}}
+
+@misc{yang2025heteropodxpuacceleratedinfrastructureoffloading,
+      title={HeteroPod: XPU-Accelerated Infrastructure Offloading for Commodity Cloud-Native Applications}, 
+      author={Bicheng Yang and Jingkai He and Dong Du and Yubin Xia and Haibo Chen},
+      year={2025},
+      eprint={2503.23952},
+      archivePrefix={arXiv},
+      primaryClass={cs.OS},
+      url={https://arxiv.org/abs/2503.23952}, 
+}
+
+@inproceedings{10.1145/3341302.3342079,
+author = {Liu, Ming and Cui, Tianyi and Schuh, Henry and Krishnamurthy, Arvind and Peter, Simon and Gupta, Karan},
+title = {Offloading distributed applications onto smartNICs using iPipe},
+year = {2019},
+isbn = {9781450359566},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3341302.3342079},
+doi = {10.1145/3341302.3342079},
+abstract = {Emerging Multicore SoC SmartNICs, enclosing rich computing resources (e.g., a multicore processor, onboard DRAM, accelerators, programmable DMA engines), hold the potential to offload generic datacenter server tasks. However, it is unclear how to use a SmartNIC efficiently and maximize the offloading benefits, especially for distributed applications. Towards this end, we characterize four commodity SmartNICs and summarize the offloading performance implications from four perspectives: traffic control, computing capability, onboard memory, and host communication.Based on our characterization, we build iPipe, an actor-based framework for offloading distributed applications onto SmartNICs. At the core of iPipe is a hybrid scheduler, combining FCFS and DRR-based processor sharing, which can tolerate tasks with variable execution costs and maximize NIC compute utilization. Using iPipe, we build a real-time data analytics engine, a distributed transaction system, and a replicated key-value store, and evaluate them on commodity SmartNICs. Our evaluations show that when processing 10/25Gbps of application bandwidth, NIC-side offloading can save up to 3.1/2.2 beefy Intel cores and lower application latencies by 23.0/28.0 μs.},
+booktitle = {Proceedings of the ACM Special Interest Group on Data Communication},
+pages = {318–333},
+numpages = {16},
+keywords = {distributed applications, SmartNIC},
+location = {Beijing, China},
+series = {SIGCOMM '19}
+}
+
+@inproceedings{10.5555/2643634.2643666,
+author = {Ongaro, Diego and Ousterhout, John},
+title = {In search of an understandable consensus algorithm},
+year = {2014},
+isbn = {9781931971102},
+publisher = {USENIX Association},
+address = {USA},
+abstract = {Raft is a consensus algorithm for managing a replicated log. It produces a result equivalent to (multi-)Paxos, and it is as efficient as Paxos, but its structure is different from Paxos; this makes Raft more understandable than Paxos and also provides a better foundation for building practical systems. In order to enhance understandability, Raft separates the key elements of consensus, such as leader election, log replication, and safety, and it enforces a stronger degree of coherency to reduce the number of states that must be considered. Results from a user study demonstrate that Raft is easier for students to learn than Paxos. Raft also includes a new mechanism for changing the cluster membership, which uses overlapping majorities to guarantee safety.},
+booktitle = {Proceedings of the 2014 USENIX Conference on USENIX Annual Technical Conference},
+pages = {305–320},
+numpages = {16},
+location = {Philadelphia, PA},
+series = {USENIX ATC'14}
+}
+
+@inproceedings{10.1145/3477132.3483555,
+author = {Schuh, Henry N. and Liang, Weihao and Liu, Ming and Nelson, Jacob and Krishnamurthy, Arvind},
+title = {Xenic: SmartNIC-Accelerated Distributed Transactions},
+year = {2021},
+isbn = {9781450387095},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3477132.3483555},
+doi = {10.1145/3477132.3483555},
+abstract = {High-performance distributed transactions require efficient remote operations on database memory and protocol metadata. The high communication cost of this workload calls for hardware acceleration. Recent research has applied RDMA to this end, leveraging the network controller to manipulate host memory without consuming CPU cycles on the target server. However, the basic read/write RDMA primitives demand trade-offs in data structure and protocol design, limiting their benefits. SmartNICs are a flexible alternative for fast distributed transactions, adding programmable compute cores and on-board memory to the network interface. Applying measured performance characteristics, we design Xenic, a SmartNIC-optimized transaction processing system. Xenic applies an asynchronous, aggregated execution model to maximize network and core efficiency. Xenic's co-designed data store achieves low-overhead remote object accesses. Additionally, Xenic uses flexible, point-to-point communication patterns between SmartNICs to minimize transaction commit latency. We compare Xenic against prior RDMA- and RPC-based transaction systems with the TPC-C, Retwis, and Smallbank benchmarks. Our results for the three benchmarks show 2.42x, 2.07x, and 2.21x throughput improvement, 59\%, 42\%, and 22\% latency reduction, while saving 2.3, 8.1, and 10.1 threads per server.},
+booktitle = {Proceedings of the ACM SIGOPS 28th Symposium on Operating Systems Principles},
+pages = {740–755},
+numpages = {16},
+keywords = {SmartNICs, RDMA, Distributed Transactions},
+location = {Virtual Event, Germany},
+series = {SOSP '21}
+}
+
+@ARTICLE{7544640,
+  author={Lee, Changhyun and Park, Chunjong and Jang, Keon and Moon, Sue and Han, Dongsu},
+  journal={IEEE/ACM Transactions on Networking}, 
+  title={DX: Latency-Based Congestion Control for Datacenters}, 
+  year={2017},
+  volume={25},
+  number={1},
+  pages={335-348},
+  keywords={Delays;Switches;Proposals;Wide area networks;Correlation;Noise measurement;Algorithm design and analysis;Datacenter networks;congestion control;TCP;low latency},
+  doi={10.1109/TNET.2016.2587286}}
+
+@ARTICLE{9312774,
+  author={Hu, Xiaohe and Xiang, Yang and Li, Yifan and Qiu, Buyi and Wang, Kai and Li, Jun},
+  journal={Tsinghua Science and Technology}, 
+  title={Trident: Efficient and practical software network monitoring}, 
+  year={2021},
+  volume={26},
+  number={4},
+  pages={452-463},
+  keywords={Monitoring;Software;Software algorithms;Kernel;Complexity theory;Cloud computing;Hardware;cloud networking;software network monitoring;network programmability;network management},
+  doi={10.26599/TST.2020.9010018}}
+
+@inproceedings{10.1145/3341216.3342216,
+author = {Mercian, Anu and Sharma, Puneet and Aguiar, Renato and Chen, Chinlin and Pinheiro, David},
+title = {UDAAN: Embedding User-Defined Analytics Applications in Network Devices},
+year = {2019},
+isbn = {9781450368728},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3341216.3342216},
+doi = {10.1145/3341216.3342216},
+abstract = {Network monitoring has been evolving over several years to be able to identify and react to issues at a faster rate to reduce network downtime. With the expansion of cloud-users and the need for higher networking capability, the deployments are vast and complex, constantly making network troubleshooting slower. In this paper, we introduce a novel network monitoring and troubleshooting architecture that is user-defined, allowing users to define their troubleshooting profiles for a network device. We introduce the framework that can be easily integrated with the network device operating system which can work either independently on the device or can be aggregated across multiple devices in a network deployment. We present use-cases where this device-level telemetry abstraction would be very useful and how it can be easily extended. Also, we describe the machine-learning aspect which predicts thresholds based on data patterns, thus automating responses when an anomalous event occurs. Finally, we analyze the footprint the framework would have on a real network device and its overall benefit for the network in terms of latency and reaction time.},
+booktitle = {Proceedings of the 2019 Workshop on Network Meets AI \& ML},
+pages = {70–75},
+numpages = {6},
+keywords = {Analytics, Embedded Machine Learning, User-Defined Apps},
+location = {Beijing, China},
+series = {NetAI'19}
+}
+
+@INPROCEEDINGS{8549431,
+  author={Gulenko, Anton and Wallschläger, Marcel and Kao, Odej},
+  booktitle={2018 IEEE 7th International Conference on Cloud Networking (CloudNet)}, 
+  title={A Practical Implementation of In-Band Network Telemetry in Open vSwitch}, 
+  year={2018},
+  volume={},
+  number={},
+  pages={1-4},
+  keywords={Switches;Monitoring;Measurement;Metadata;Kernel;Telemetry;Cloud computing;Cloud Computing;Network Monitoring;In-Band Network Telemetry},
+  doi={10.1109/CloudNet.2018.8549431}}
+
+@inproceedings{10.1145/3387514.3405877,
+author = {Huang, Qun and Sun, Haifeng and Lee, Patrick P. C. and Bai, Wei and Zhu, Feng and Bao, Yungang},
+title = {OmniMon: Re-architecting Network Telemetry with Resource Efficiency and Full Accuracy},
+year = {2020},
+isbn = {9781450379557},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3387514.3405877},
+doi = {10.1145/3387514.3405877},
+abstract = {Network telemetry is essential for administrators to monitor massive data traffic in a network-wide manner. Existing telemetry solutions often face the dilemma between resource efficiency (i.e., low CPU, memory, and bandwidth overhead) and full accuracy (i.e., error-free and holistic measurement). We break this dilemma via a network-wide architectural design OmniMon, which simultaneously achieves resource efficiency and full accuracy in flow-level telemetry for large-scale data centers. OmniMon carefully coordinates the collaboration among different types of entities in the whole network to execute telemetry operations, such that the resource constraints of each entity are satisfied without compromising full accuracy. It further addresses consistency in network-wide epoch synchronization and accountability in error-free packet loss inference. We prototype OmniMon in DPDK and P4. Testbed experiments on commodity servers and Tofino switches demonstrate the effectiveness of OmniMon over state-of-the-art telemetry designs.},
+booktitle = {Proceedings of the Annual Conference of the ACM Special Interest Group on Data Communication on the Applications, Technologies, Architectures, and Protocols for Computer Communication},
+pages = {404–421},
+numpages = {18},
+keywords = {Distributed systems, Network measurement},
+location = {Virtual Event, USA},
+series = {SIGCOMM '20}
+}
+
+@INPROCEEDINGS{9153279,
+  author={Feng, Yixiao and Panda, Sourav and Kulkarni, Sameer G and Ramakrishnan, K. K. and Duffield, Nick},
+  booktitle={2020 IEEE International Symposium on Local and Metropolitan Area Networks (LANMAN}, 
+  title={A SmartNIC-Accelerated Monitoring Platform for In-band Network Telemetry}, 
+  year={2020},
+  volume={},
+  number={},
+  pages={1-6},
+  keywords={Monitoring;Telemetry;Measurement;Metadata;Pipelines;Event detection;IP networks;In-band network Telemetry;Network Monitoring;P4},
+  doi={10.1109/LANMAN49260.2020.9153279}}
+
+
+@article{tan_-band_2021,
+	title = {In-band {Network} {Telemetry}: {A} {Survey}},
+	volume = {186},
+	issn = {13891286},
+	shorttitle = {In-band {Network} {Telemetry}},
+	url = {https://linkinghub.elsevier.com/retrieve/pii/S1389128620313396},
+	doi = {10.1016/j.comnet.2020.107763},
+	language = {en},
+	urldate = {2025-09-17},
+	journal = {Computer Networks},
+	author = {Tan, Lizhuang and Su, Wei and Zhang, Wei and Lv, Jianhui and Zhang, Zhenyi and Miao, Jingying and Liu, Xiaoxi and Li, Na},
+	month = feb,
+	year = {2021},
+	pages = {107763},
+}
+
+@article{SUH202062,
+title = {Flexible sampling-based in-band network telemetry in programmable data plane},
+journal = {ICT Express},
+volume = {6},
+number = {1},
+pages = {62-65},
+year = {2020},
+issn = {2405-9595},
+doi = {https://doi.org/10.1016/j.icte.2019.08.005},
+url = {https://www.sciencedirect.com/science/article/pii/S2405959519302358},
+author = {Dongeun Suh and Seokwon Jang and Sol Han and Sangheon Pack and Xiaofei Wang},
+keywords = {Programmable data plane, In-band network telemetry, Flexible sampling-based INT},
+abstract = {In-band network telemetry (INT) is an emerging network monitoring framework based on a protocol-independent packet processor (P4). Network devices can be programmed with a domain-specific language to embed switch-internal states into data packets as they traverse through networks. However, the current P4-based INT does not support a sampling; thus, INT headers should be augmented for all incoming packets, which will incur high overhead in a large-scale network. In this paper, we propose a flexible sampling-based INT (FS-INT) scheme to address the aforementioned issues. Simulation results show that FS-INT can reduce the protocol overhead in a controlled manner while providing sufficiently high accuracy.}
+}
+
+@INPROCEEDINGS{10596397,
+  author={Sharifian, Mehrnaz and Tootaghaj, Diman Zad and Chuah, Chen-Nee and Sharma, Puneet},
+  booktitle={2024 IEEE International Parallel and Distributed Processing Symposium Workshops (IPDPSW)}, 
+  title={DUST: Resource-Aware Telemetry Offloading with A Distributed Hardware-Agnostic Approach}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={919-928},
+  keywords={Distributed processing;Scalability;Heuristic algorithms;Systems architecture;Switches;Routing;Telemetry;network telemetry;monitoring offload;data processing units;optimization;scalability},
+  doi={10.1109/IPDPSW63119.2024.00161}}
+
+@INPROCEEDINGS{8847032,
+  author={Ni, Zhen and Liu, Guyue and Afanasev, Dennis and Wood, Timothy and Hwang, Jinho},
+  booktitle={2019 IEEE International Symposium on Local and Metropolitan Area Networks (LANMAN)}, 
+  title={Advancing Network Function Virtualization Platforms with Programmable NICs}, 
+  year={2019},
+  volume={},
+  number={},
+  pages={1-6},
+  keywords={Noise measurement;Security;Software;Containers;Programming;Hardware;Middleboxes;Network Functions Virtualization;Isolation;Offloading;Smart NICs},
+  doi={10.1109/LANMAN.2019.8847032}}
+
+@inproceedings {211249,
+author = {Daniel Firestone and Andrew Putnam and Sambhrama Mundkur and Derek Chiou and Alireza Dabagh and Mike Andrewartha and Hari Angepat and Vivek Bhanu and Adrian Caulfield and Eric Chung and Harish Kumar Chandrappa and Somesh Chaturmohta and Matt Humphrey and Jack Lavier and Norman Lam and Fengfen Liu and Kalin Ovtcharov and Jitu Padhye and Gautham Popuri and Shachar Raindel and Tejas Sapre and Mark Shaw and Gabriel Silva and Madhan Sivakumar and Nisheeth Srivastava and Anshuman Verma and Qasim Zuhair and Deepak Bansal and Doug Burger and Kushagra Vaid and David A. Maltz and Albert Greenberg},
+title = {Azure Accelerated Networking: {SmartNICs} in the Public Cloud},
+booktitle = {15th USENIX Symposium on Networked Systems Design and Implementation (NSDI 18)},
+year = {2018},
+isbn = {978-1-939133-01-4},
+address = {Renton, WA},
+pages = {51--66},
+url = {https://www.usenix.org/conference/nsdi18/presentation/firestone},
+publisher = {USENIX Association},
+month = apr
+}
+
+@inproceedings{10.1145/3387514.3406591,
+author = {Kumar, Gautam and Dukkipati, Nandita and Jang, Keon and Wassel, Hassan M. G. and Wu, Xian and Montazeri, Behnam and Wang, Yaogong and Springborn, Kevin and Alfeld, Christopher and Ryan, Michael and Wetherall, David and Vahdat, Amin},
+title = {Swift: Delay is Simple and Effective for Congestion Control in the Datacenter},
+year = {2020},
+isbn = {9781450379557},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3387514.3406591},
+doi = {10.1145/3387514.3406591},
+abstract = {We report on experiences with Swift congestion control in Google datacenters. Swift targets an end-to-end delay by using AIMD control, with pacing under extreme congestion. With accurate RTT measurement and care in reasoning about delay targets, we find this design is a foundation for excellent performance when network distances are well-known. Importantly, its simplicity helps us to meet operational challenges. Delay is easy to decompose into fabric and host components to separate concerns, and effortless to deploy and maintain as a congestion signal while the datacenter evolves. In large-scale testbed experiments, Swift delivers a tail latency of <50μs for short RPCs, with near-zero packet drops, while sustaining ~100Gbps throughput per server. This is a tail of <3x the minimal latency at a load close to 100\%. In production use in many different clusters, Swift achieves consistently low tail completion times for short RPCs, while providing high throughput for long RPCs. It has loss rates that are at least 10x lower than a DCTCP protocol, and handles O(10k) incasts that sharply degrade with DCTCP.},
+booktitle = {Proceedings of the Annual Conference of the ACM Special Interest Group on Data Communication on the Applications, Technologies, Architectures, and Protocols for Computer Communication},
+pages = {514–528},
+numpages = {15},
+keywords = {Performance Isolation, Datacenter Transport, Congestion Control},
+location = {Virtual Event, USA},
+series = {SIGCOMM '20}
+}
+
+@inproceedings{Xu2025GeoLM,
+  author       = {Xu, Duling and Zhang, Dafang and Li, Tong and Chai, Yunpeng and Sun, Zegang and Li, Weiming and Liu, Yangfan and Wang, Qipeng and Liang, Jiaqi and Ren, Yang and Lu, Wei and Du, Xiaoyong},
+  title        = {GeoLM: Performance-oriented Leader Management for Geo-Distributed Consensus Protocol},
+  year         = {2025},
+  booktitle    = {Proceedings of the International Conference on Geo-Distributed Systems and Databases},
+  publisher    = {Association for Computing Machinery},
+  address      = {New York, NY, USA},
+  keywords     = {Geo-distributed database, consensus protocol, leader management, Raft, Paxos, performance optimization},
+  note         = {Renmin University of China and Huawei},
+  doi          = {10.1145/0000000.0000000},
+  url          = {https://ieeexplore.ieee.org/stamp/stamp.jsp？arnumber=11044598},
+  abstract     = {GeoLM proposes a performance-oriented leader management mechanism for geo-distributed consensus protocols. By integrating network and application dynamics, GeoLM proactively conducts seamless leader handovers with bounded switching costs, achieving up to 49.75\% performance improvement over Raft and Geo-Raft.}
+}
+
+@article{DBLP:journals/corr/SriramanLGSW17,
+  author       = {Akshitha Sriraman and
+                  Sihang Liu and
+                  Sinan Gunbay and
+                  Shan Su and
+                  Thomas F. Wenisch},
+  title        = {Deconstructing the Tail at Scale Effect Across Network Protocols},
+  journal      = {CoRR},
+  volume       = {abs/1701.03100},
+  year         = {2017},
+  url          = {http://arxiv.org/abs/1701.03100},
+  eprinttype    = {arXiv},
+  eprint       = {1701.03100},
+  timestamp    = {Mon, 25 Feb 2019 16:19:14 +0100},
+  biburl       = {https://dblp.org/rec/journals/corr/SriramanLGSW17.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
+}

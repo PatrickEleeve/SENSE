@@ -1,0 +1,677 @@
+% THIS TEMPLATE IS A WORK IN PROGRESS
+% Adapted from an original template by faculty at Reykjavik University, Iceland
+\documentclass{scrartcl}
+\input{File_Setup.tex}
+
+
+
+
+
+\begin{document}
+%Title of the report, name of coworkers and dates (of experiment and of report).
+\begin{titlepage}
+	\centering
+	\includegraphics[width=0.6\textwidth]{nyush-logo.jpeg}\par
+	\vspace{2cm}
+	%%%% COMMENT OUT irrelevant lines among the 3 below
+	{\scshape\LARGE Computer Science \par}  %if you're a CS major
+	%{\scshape\LARGE \& \par}                %if you're a CS & DS major
+	%{\scshape\LARGE Data Science \par}      %if you're a DS major
+	\vspace{1cm}
+	{\scshape\Large Capstone Report - Fall 2025\par}
+	%{\large \today\par}
+	\vfill
+	
+	%%%% PROJECT TITLE
+	{\huge\bfseries SENSE: Extracting Network Information with
+DPUs for Better Coordination Performance\par}
+	\vfill
+	
+	%%%% AUTHOR(S)
+	{\Large\itshape Jiaxi Zhang,\\ Luoxiang Pan,}\par
+	\vspace{1.5cm}
+
+	\vfill
+	supervised by\par
+	%%%% SUPERVISOR(S)
+	Oliver Gilles Marin
+
+
+	\vfill
+% Bottom of the page
+\end{titlepage}
+
+\newpage
+
+ \begin{preface}
+        %The purpose of a preface is to persuade your readers that they should read the rest of your written work. Keep it short. Describe your background and credentials. Discuss what inspired the project described in this report. Explain who your target audience is, and tell the reader why this project is important to them.
+
+        Modern datacenters have become the backbone of Internet infrastructure. To ensure reliable and stable service, distributed systems require real-time telemetry of network layer performance to detect and mitigate anomalies immediately. However, high-fidelity telemetry introduces significant computational overhead, competing for host resources and degrading application performance. Driven by the pursuit of negligible-overhead, high-performance monitoring, we present SENSE (Service Engine for Network State Extraction). A network layer telemetry engine.
+
+        
+
+        
+
+        
+\end{preface}
+
+\vspace{1cm}
+
+\begin{acknowledgements}
+%Acknowledgements allow you to thank those who have helped and supported you during this capstone project, both on a professional and on a personal level. Here you can use a more informal style, as this is not part of the academic work itself.
+
+Thanks to Professor Marin's help, we meet every week to talk about the progress of our capstone. He gave us so many great advices on our capstone project, even some about the applications. 
+\end{acknowledgements}
+
+\newpage
+
+
+\begin{abstract}
+	    %A strong abstract sums up your work in very few sentences:
+	    %(i) state the problem you are addressing;
+	    %(ii) say why it’s an interesting problem, and which issues are hard to tackle; 
+	    %(iii) give your approach towards solving the problem; 
+	    %(iv) say why and how well your approach solves the problem.
+
+        In modern datacenter distributed systems, collecting fine-grained network telemetry at upper protocol layers introduces extra monitoring work that steals CPU time from business logic and user requests, making it difficult to maintain real-time awareness without hurting end-to-end performance. To address this tension, we design SENSE (Service Engine for Network State Extraction), a network-layer telemetry engine that extracts control-plane and data-plane signals directly from programmable SmartNICs / Data Processing Units (DPUs) and exposes them through a general-purpose service API. SENSE can run either on the host or be offloaded to DPUs, where it continuously monitors host CPU and memory usage together with packet-level events and makes this state available to upper-layer protocols and applications, such as a Raft-based coordination service. A prototype deployment on a three-node cluster suggests that offloading SENSE to DPUs reduces host-side monitoring overhead while preserving low-latency visibility into network conditions, pointing to a practical path toward scalable, real-time telemetry in production-style environments.
+\end{abstract}
+\vspace{1cm}
+
+\begin{keywords}
+\centering
+        Here your keywords: eg. \textbf{DPU; Data Centers; Distributed System; Smart NIC; Network System}
+\end{keywords}
+
+\newpage
+
+
+
+\doublespacing
+\tableofcontents
+\singlespacing
+
+\newpage
+
+\doublespacing
+
+\section{Introduction}
+
+%Your introduction briefly explains the problem you address, and what you've achieved towards solving the problem. It's an edited and updated version of your context and objectives from your topic outline document.
+
+In modern datacenter distributed systems, collecting network telemetry at upper protocol layers adds extra monitoring work. It pulls CPU time away from business logic and user requests. A network-layer design can cut this overhead. It can also improve end-to-end performance. Programmable SmartNICs or Data Processing Units (DPUs) provide a natural place to run this logic as separate computing units. Offloading telemetry to these devices reduces pressure on host CPUs.
+Therefore, we present SENSE (Service Engine for Network State Extraction). SENSE is a network-layer telemetry module. It extracts control-plane and data-plane telemetry directly from hardware and from packet-level signals. The module can run on DPUs. It exposes a general-purpose service API that upper-layer protocols and applications can query for network state. In this way, SENSE lowers the cost of real-time network awareness on the hosts.
+
+
+
+\section{Related Work}
+\label{sec:related-work}
+
+Modern distributed systems increasingly depend on fine-grained telemetry to maintain consistency, availability, and high performance. Prior research falls broadly into two areas: (1) systems that \emph{consume} telemetry to optimize distributed operation, and (2) mechanisms that \emph{produce, collect, or offload} telemetry. However, neither direction addresses the combined challenge of reducing host telemetry overhead while integrating telemetry extraction with consensus logic---a gap that SENSE explicitly targets.
+
+\subsection{Telemetry for Distributed System Optimization}
+\label{subsec:telemetry-ds-optimization}
+
+A series of systems demonstrate the central value of delay- or congestion-based telemetry for improving distributed performance. Google's Swift~\cite{10.1145/3387514.3406591} uses RTT as its only congestion signal and achieves extremely low tail latency (below 50~$\mu$s) in production clusters through in-network pacing and AIMD control. Swift shows the criticality of precise delay feedback but relies on kernel-path transport, which suffers from context switches, interrupts, and memory copying overheads, as documented in Tail-at-Scale analyses~\cite{DBLP:journals/corr/SriramanLGSW17}. Similarly, DX~\cite{7544640} leverages one-way delay (OWD) measurements for latency-sensitive congestion control, again assuming that hosts can efficiently obtain such telemetry without considering its extraction cost.
+
+Beyond congestion control, telemetry also plays a role in coordination protocols. GeoLM~\cite{Xu2025GeoLM} integrates both network-layer and application-layer telemetry to guide leader placement in geo-distributed consensus, delivering nearly 50\% improvement over standard Raft-based designs. This demonstrates how telemetry can directly influence consistency performance when available in real time.
+
+Tail-at-Scale studies further reveal that long-tail latency in networked systems originates largely from kernel overhead, not network distance~\cite{DBLP:journals/corr/SriramanLGSW17}. These findings are consistent with our own benchmarking results showing TCP RTT on the order of milliseconds versus tens of microseconds with DPDK-based communication. Together, these works highlight that telemetry is indispensable to distributed systems---but none address the \emph{cost} of gathering telemetry itself, nor do they explore hardware acceleration to extract telemetry near the data plane.
+
+\paragraph{Relation to SENSE.}
+The systems above depend on telemetry as an input signal but implicitly assume that telemetry collection is free. In contrast, SENSE empirically demonstrates that telemetry collection imposes a non-trivial CPU ``telemetry tax'' on hosts and treats telemetry extraction as a first-class system component that can be relocated to DPUs, where kernel involvement is eliminated.
+
+\subsection{Telemetry Monitoring, In-Network Analysis, and Offloading}
+\label{subsec:telemetry-monitoring-offloading}
+
+A second body of work focuses on how telemetry is collected and processed. Traditional monitoring systems---such as NetFlow, sFlow, and software-based monitoring like Trident~\cite{9312774}---depend on centralized polling or host-based agents, resulting in high overhead and coarse granularity. Even improved designs such as Trident and OmniMon~\cite{10.1145/3387514.3405877}, or practical in-band telemetry implementations in Open~vSwitch~\cite{8549431}, offer only partial resource efficiency and still impose CPU and memory overhead on hosts.
+
+In-band Network Telemetry (INT) systems embed metadata inside packets to measure per-hop conditions~\cite{tan_-band_2021}. FS-INT reduces sampling frequency or metadata size via programmable data planes~\cite{SUH202062}, and SmartNIC-accelerated INT offloads packet parsing and event detection to NICs, allowing line-rate monitoring~\cite{9153279}. These designs reduce packet overhead but require packet modification, depend on programmable switches or SmartNICs, and ultimately still involve host processing of telemetry aggregates.
+
+Parallel to INT improvements, several systems explore offloading telemetry analysis. DUST~\cite{10596397} dynamically places telemetry analytics on heterogeneous devices, while UDAAN and related approaches embed user-defined analytics into network devices~\cite{10.1145/3341216.3342216}. These systems improve resource utilization but generally operate above the data plane and do not integrate with distributed coordination logic.
+
+\paragraph{Relation to SENSE.}
+Existing telemetry systems either (1) optimize telemetry packet formats, (2) shift analysis off hosts, or (3) accelerate specific telemetry tasks on SmartNICs. None perform what SENSE does: extracting telemetry directly using kernel-bypass DPDK on DPUs; providing a general-purpose telemetry API to higher-level distributed protocols; and integrating telemetry extraction with Raft consensus itself.
+
+\subsection{DPUs and Kernel-Bypass Distributed Coordination}
+\label{subsec:dpu-kernel-bypass}
+
+Data Processing Units (DPUs) introduce a new hardware tier capable of executing network- and storage-intensive operations with minimal host involvement. Systems such as Azure's Accelerated Networking~\cite{211249} and edge computing DPU deployments~\cite{9868927} show that DPUs can offload datapath and monitoring tasks effectively. A recent survey argues that SmartNICs and DPUs are becoming indispensable in modern cloud environments~\cite{tibbetts2025surveyheterogeneouscomputingusing}.
+
+Recent SmartNIC research---iPipe~\cite{10.1145/3341302.3342079}, Xenic~\cite{10.1145/3477132.3483555}, and HeteroPod~\cite{yang2025heteropodxpuacceleratedinfrastructureoffloading}, among others---demonstrates that lightweight distributed logic can be offloaded to NICs to reduce host CPU pressure. However, these works primarily focus on application offloading (iPipe), distributed transactions (Xenic), or infrastructure acceleration (HeteroPod). None consider the fusion of telemetry extraction with consensus protocol execution.
+
+Kernel-bypass Raft implementations based on DPDK (and inspired by classic Raft~\cite{10.5555/2643634.2643666}) show that consensus protocols can be implemented entirely in user space, achieving low election latency and efficient packet processing. Yet these prototypes typically do not incorporate telemetry, nor do they integrate real-time network insights into Raft's decision-making.
+
+\paragraph{Relation to SENSE.}
+SENSE builds on these insights but extends them significantly: not only does Raft run in kernel-bypass mode, it becomes \emph{telemetry-aware}, using DPU-generated RTT, loss, and queue statistics to drive election or coordination logic. To the best of our knowledge, this integration has not been demonstrated in prior literature.
+
+\subsection{Gap Analysis: What Existing Work Still Lacks}
+\label{subsec:gap-analysis}
+
+Across all categories above, three persistent gaps remain:
+
+\begin{enumerate}
+    \item \textbf{No system extracts telemetry directly from the data plane via DPDK on DPUs.} INT systems instrument packets; SNMP- and NetFlow-based systems poll hosts. None provide bottom-up, zero-kernel telemetry extraction at microsecond granularity.
+    \item \textbf{No system integrates telemetry extraction \emph{with} consensus logic.} Prior work separates telemetry (monitoring) from coordination (Raft, GeoLM). SENSE unifies them: telemetry influences Raft behavior, and both can be offloaded to DPUs.
+    \item \textbf{No prior work measures or reduces the ``telemetry tax.''} Existing systems do not quantify or attempt to eliminate the CPU and memory overhead introduced by telemetry monitoring, whereas our design and evaluation explicitly target this cost.
+\end{enumerate}
+
+These gaps directly motivate SENSE's design.
+
+\subsection{How SENSE Differs from Prior Work}
+\label{subsec:sense-contrib-vs-rw}
+
+SENSE introduces three contributions absent from the current literature:
+
+\begin{enumerate}
+    \item \textbf{Kernel-bypass, DPU-resident telemetry extraction.} Using DPDK, SENSE measures RTT, queue depth, packet statistics, and loss without kernel involvement, unlike INT or host-based polling approaches.
+    \item \textbf{Telemetry-aware consensus: Raft augmented with real-time network signals.} SENSE is, to our knowledge, the first system to integrate low-level telemetry directly into the decision logic of Raft, executed either on hosts or fully offloaded to DPUs.
+    \item \textbf{Elimination of host telemetry overhead.} By moving telemetry extraction and part of the coordination logic to DPUs, SENSE empirically reduces host CPU usage due to monitoring to near zero, effectively removing the telemetry tax that prior systems leave unaddressed.
+\end{enumerate}
+
+Together, these design choices address limitations in prior systems and establish SENSE as a bottom-up, hardware-assisted telemetry engine tailored for modern distributed systems.
+
+
+%Your related work section positions your problem and your approach with respect to other, maybe similar, projects you've found in the literature. 
+%It "\textit{should not only explain what research others have done, but in each case should compare and contrast that to your work and also to other related work. After reading this section, a reader should understand the key idea and contribution of each significant piece of related work, how they fit together, and how your work differs.}"\footnote{\href{https://homes.cs.washington.edu/~mernst/advice/write-technical-paper.html\#related-work}{Michael Ernst - How to write a technical paper}} 
+%%%% DO NOT write a related work section that is just a laundry list of other papers, with a sentence about each one that was lifted from its abstract, and without any critical analysis nor deep comparison to other work.
+
+It's an edited and updated version of your literature review. Here are a few examples of how to insert citations like~\cite{byzantine-pki}, \cite{atomic-mcast-tcs01}, and also~\cite{sybilattack}, or even~\cite{psn-fail, verisign-fail}.
+
+
+
+%The solution section covers all of your contributions (architecture, algorithms, formulas, findings).
+%It explains in detail each contribution, if possible with figures/schematics.
+
+%Don't forget that a figure goes a long way towards helping your reader understand your work. For instance, Figure~\ref{fig:ascent} outlines the layers involved in a distributed certification service, and how they articulate together. Nevertheless, a figure must always come with at least one paragraph of explanation. The rule is that anyone should be able to understand your solution from reading the text in this section, even if they skip the figures.
+
+
+
+\section{Solution}
+\label{sec:solution}
+
+SENSE (Service Engine for Network State Extraction) is a network-layer telemetry engine designed to reduce host-side monitoring overhead and provide microsecond-scale visibility into dataplane behavior for distributed coordination protocols. This section presents the complete architecture, telemetry extraction logic, API design, Raft integration, DPU offloading mechanism, and experimental findings. The content is organized so that readers can understand the design without any figures.
+
+%============================================================%
+\subsection{System Architecture}
+%============================================================%
+
+SENSE consists of three conceptual layers:
+
+\begin{enumerate}
+    \item \textbf{Telemetry Extraction Layer} (host or DPU), responsible for realtime dataplane measurements.
+    \item \textbf{Service Interface Layer}, which exposes a unified API independent of deployment mode.
+    \item \textbf{Telemetry-Aware Coordination Layer}, where upper-layer protocols such as Raft consume the telemetry frames.
+\end{enumerate}
+
+The system supports two operational modes---host-resident and DPU-offloaded---while preserving identical functionality and interface semantics.
+
+In the \textbf{host-resident mode}, SENSE runs as a DPDK-based userspace process on the host. Telemetry frames are produced locally and consumed directly by Raft via memory access. This mode resembles traditional monitoring but benefits from kernel-bypass packet handling and microsecond-scale timing.
+
+In the \textbf{DPU-offloaded mode}, both SENSE and Raft execute on the DPU entirely in userspace. The host only runs a lightweight UDP listener that receives serialized telemetry summaries. Despite the difference in placement, the behavior, semantics, and API contract of SENSE remain identical across modes. This ensures clean A/B comparisons and isolates the effect of offloading itself.
+
+%============================================================%
+\subsection{Telemetry Extraction}
+%============================================================%
+
+SENSE extracts four dataplane metrics: RTT, packet loss, queue occupancy, and packet counters. For each metric, we first explain its purpose and then present its computation.
+
+\textbf{RTT Measurement.}
+RTT provides a direct signal of latency and congestion. SENSE obtains timestamp-accurate RTT by embedding cycle-counter timestamps in probe packets. If $t_s$ and $t_r$ denote the send and receive timestamps, then
+\begin{equation}
+    \mathrm{RTT} = t_r - t_s.
+\end{equation}
+To smooth transient variance, SENSE maintains a sliding-window estimate:
+\begin{equation}
+    \overline{\mathrm{RTT}}_W = \frac{1}{W}\sum_{i=1}^W \mathrm{RTT}_i.
+\end{equation}
+DPDK’s kernel-bypass datapath ensures microsecond-level precision for these measurements.
+
+\textbf{Packet Loss Estimation.}
+Packet loss indicates congestion or queue drops along the path. Let $S$ be the number of probes sent and $R$ be those received:
+\begin{equation}
+    \mathrm{LossRate} = 1 - \frac{R}{S}.
+\end{equation}
+Because the counting is done directly at the NIC, this loss rate reflects dataplane behavior rather than host-level retransmissions.
+
+\textbf{Queue Occupancy.}
+Queue utilization reveals momentary congestion and NIC backpressure. Using descriptor metadata exposed by DPDK, SENSE computes
+\begin{equation}
+    \mathrm{QueueUtil} = \frac{\mathrm{UsedDescriptors}}{\mathrm{TotalDescriptors}}.
+\end{equation}
+High queue utilization warns Raft that congestion is building up, whereas low utilization suggests spare capacity.
+
+\textbf{Packet Counters.}
+TX/RX counters assist in diagnosing asymmetric flow, burst patterns, and queue buildup. SENSE records these counters into telemetry frames so that coordination protocols and external analyzers can correlate events with traffic volume.
+
+%============================================================%
+\subsection{Telemetry Service Interface}
+%============================================================%
+
+SENSE aims to provide applications with a stable abstraction for reading network-layer telemetry, regardless of where the telemetry computation executes. This abstraction defines a single conceptual operation---obtaining a snapshot of the current network state---while allowing the underlying collection mechanism to differ across deployment modes. At the current prototype stage, however, the two execution paths do not yet share a unified system interface.
+
+When telemetry runs locally within the same process, the application retrieves the most recent state through a direct API that reads from host-resident shared memory. SENSE maintains this memory region continuously, and the application observes low-latency access to delay and congestion signals. This mode reflects the intended interaction model: a function call that returns a coherent snapshot without exposing internal data movement.
+
+When telemetry is offloaded to the DPU, the system follows a different path. The DPU periodically publishes telemetry reports by sending compact UDP messages to a collector running on the host. A separate host-side component receives and parses these reports. Applications do not interact with these reports through the same API used in the host-resident mode; instead, the offloaded path currently requires an external receiver and an explicit handoff of the processed telemetry.
+
+This design reflects the prototype nature of the system. The abstraction of ``reading the current telemetry state'' is defined, but its realization diverges across execution modes. The host-resident case already matches the intended form of the abstraction, while the offloaded case currently delivers telemetry through an out-of-band reporting channel. Future integration can reconcile both paths by introducing a shared host-side buffer updated by the UDP receiver, allowing the existing API to return offloaded telemetry in a transparent way. Such an evolution would preserve the abstraction while making the backend interchangeable.
+
+In summary, SENSE establishes an abstraction-first interface philosophy, but its current backend implementations differ. The local path exposes a direct and low-overhead retrieval mechanism, while the offloaded path operates through periodic reporting. These differences highlight both the flexibility of the telemetry service and the remaining engineering steps needed to fully unify the interface across deployment environments.
+
+
+%============================================================%
+\subsection{Integration with Raft Consensus}
+%============================================================%
+
+SENSE augments Raft by feeding it live dataplane telemetry without modifying the underlying protocol semantics. Raft continues to follow its standard state machine (Follower, Candidate, Leader); SENSE only influences timing parameters.
+
+\textbf{Telemetry-Aware Election Timeout.}
+Instead of relying on fixed ranges $[T_{\min},T_{\max}]$, Raft computes an adaptive timeout using the measured RTT:
+\begin{equation}
+    T_{\mathrm{election}} = \alpha \cdot \overline{\mathrm{RTT}} + \beta,
+\end{equation}
+where $\alpha$ and $\beta$ tune the trade-off between responsiveness and stability. Lower RTT allows shorter timeouts and faster recovery; higher RTT leads to more conservative timeouts.
+
+\textbf{Leader Degradation Detection.}
+When sustained latency exceeds a threshold,
+\begin{equation}
+    \overline{\mathrm{RTT}} > \theta,
+\end{equation}
+the leader interprets this as degraded connectivity and may voluntarily step down. This avoids long periods where a poorly connected leader blocks progress.
+
+\textbf{Congestion-Aware Heartbeats.}
+Queue utilization influences heartbeat pacing. We adjust the heartbeat interval according to:
+\begin{equation}
+I_{\mathrm{heartbeat}} =
+\begin{cases}
+I_0/2  & \text{low congestion},\\
+I_0    & \text{moderate congestion},\\
+2I_0   & \text{high congestion}.
+\end{cases}
+\end{equation}
+This policy reduces control traffic when the network is congested and makes Raft more responsive when the network is idle. All such adaptations preserve Raft correctness while enabling more responsive coordination under varying network conditions.
+
+%============================================================%
+\subsection{DPU Offloading Design}
+%============================================================%
+
+When offloaded, SENSE and Raft run entirely on the DPU. This design leverages DPDK’s user-space datapath to eliminate kernel interruptions and buffer copies, ensuring microsecond responsiveness for both telemetry and consensus messages.
+
+The host runs a minimal UDP listener that receives serialized \texttt{TelemetryFrame} instances. Empirically, this listener imposes negligible CPU cost (below 0.1\% fluctuation on our monitored hosts). Offloading does not alter the semantics of Raft messages or the contents of telemetry frames; it only relocates computation. This ensures functional equivalence across modes and enables fair experimentation between host-resident and DPU-offloaded configurations.
+
+%============================================================%
+\subsection{Summary of Results}
+%============================================================%
+
+Experiments conducted on a three-node cluster equipped with BlueField-2 DPUs yield the following observations:
+
+\begin{itemize}
+    \item Host-resident telemetry incurs a nontrivial CPU overhead of 2--5\%, demonstrating that upper-layer monitoring imposes a measurable ``telemetry tax'' on application hosts.
+    \item Offloading SENSE and Raft reduces host CPU overhead to nearly 0\%, confirming that migration to the DPU can effectively eliminate monitoring cost on the host.
+    \item Memory usage remains stable within 0.1\% fluctuation across all configurations, which is acceptable under nondedicated cluster conditions.
+    \item DPDK-based packet exchange achieves microsecond-scale RTT (approximately 30~\textmu s), roughly two orders of magnitude faster than TCP-based timing (around 3~ms) observed on the same hardware.
+\end{itemize}
+
+These preliminary results indicate that network-layer telemetry extracted directly from the dataplane can effectively eliminate host monitoring overhead while offering higher-precision feedback for distributed coordination protocols such as Raft.
+
+
+
+
+
+
+\section{Performance Assessment}
+\label{sec:results}
+
+This section evaluates the current SENSE prototype and analyzes how host-side
+resource usage and communication latency vary when telemetry and election logic
+run locally on the host versus when they are offloaded to the DPU. The purpose is
+not to measure end-to-end system performance, but to quantify the ``telemetry
+tax''—the CPU and memory resources consumed when telemetry executes on the host,
+and the degree to which this overhead is reduced when computation is relocated to
+the DPU.
+
+Our evaluation focuses on three metrics: (1) CPU overhead, measured by comparing
+host CPU utilization when SENSE runs locally with the utilization when the host
+only maintains a lightweight UDP listener; (2) memory overhead, including DPDK
+hugepage allocations and memory usage by host-resident processes; and (3) round-
+trip latency (RTT), used to contrast TCP-based communication with the kernel-
+bypass datapaths enabled by DPDK.
+
+Although the cluster environment experienced constraints and occasional node
+failures, limiting the scale of experimentation, the collected data still offers
+a consistent basis for examining the cost of telemetry and evaluating the
+benefits of heterogeneous offloading.
+
+\subsection{Experimentation Protocol}
+\label{subsec:protocol}
+
+We conduct our evaluation on a three-node local cluster at NYU Shanghai, with
+nodes 108, 109, and 110. Each node is equipped with a BlueField-2 DPU and runs a
+lightweight monitoring script on the host. This script samples CPU and memory
+usage at a fixed interval of 10 seconds and logs the results to JSON, JSONL, and
+CSV outputs without drift or data loss. Each experimental run yields more than
+500 CSV samples for analysis.
+
+We examine four execution configurations:
+
+\begin{enumerate}
+    \item \textbf{Baseline on Host}: No additional program runs on the host. This
+    configuration establishes the baseline for comparison.
+
+    \item \textbf{Raft on Host}: A Raft implementation executes on the host using
+    DPDK for packet handling.
+
+    \item \textbf{Raft and SENSE on Host}: Both Raft and SENSE run on the host;
+    the Raft process periodically reads telemetry produced by SENSE.
+
+    \item \textbf{UDP Listener on Host (SENSE Offloaded)}: Raft and SENSE run
+    entirely on the DPU, while the host runs only a lightweight UDP listener to
+    receive serialized telemetry reports.
+\end{enumerate}
+
+Across all configurations, hardware, operating system, and network settings
+remain the same. The monitoring script gathers CPU data from \texttt{/proc/stat}
+and memory data from \texttt{/proc/meminfo} with negligible overhead. These time
+series enable a controlled comparison of host resource usage across deployment
+modes.
+
+\subsection{Resource Consumption}
+\label{subsec:resource}
+
+We begin with host-side resource usage—specifically memory footprint and CPU
+utilization. Figures~\ref{fig:mem-usage} and~\ref{fig:cpu-usage} present the
+trends observed in memory and CPU usage across the four configurations.
+
+\subsubsection{Memory Usage}
+\label{subsubsec:memory}
+
+Figure~\ref{fig:mem-usage} illustrates memory usage over time. Because the
+cluster is shared with other users, background activities occasionally introduce
+noise in the measurements. As a result, we observe small fluctuations and, in
+some runs, a slight downward drift in reported memory usage.
+
+Due to instability within the cluster, we were only able to complete one full
+experimental run, limiting the measurement window. Within this window, memory
+usage for all four configurations remains within a tight range. The data
+indicates that neither Raft nor SENSE significantly alters host memory
+consumption. While these findings are preliminary, they suggest that memory
+overhead is not a major concern. More comprehensive evaluation will require
+stable nodes and repeated trials.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Graphics/baseline_raft_mem_bars.png}
+    \caption{Host memory usage under four configurations on a shared cluster. Due to interference
+    from other workloads, we observe minor variations and slight decreases over time, but
+    no significant differences between the configurations.}
+    \label{fig:mem-usage}
+\end{figure}
+
+\subsubsection{CPU Usage}
+\label{subsubsec:cpu}
+
+Figure~\ref{fig:cpu-usage} presents the CPU utilization across configurations.
+Three observations stand out.
+
+First, moving from \emph{Baseline on Host} to \emph{Raft on Host} produces a
+mild increase in CPU usage, reflecting Raft’s periodic message handling and
+timer-driven operations.
+
+Second, comparing \emph{Raft on Host} with \emph{Raft and SENSE on Host}, we
+observe that enabling SENSE adds a measurable but bounded overhead. Across all
+nodes, this ``telemetry tax'' ranges from 2\% to 5\%. The overhead corresponds to
+continuous extraction of control-plane and dataplane telemetry, maintenance of
+packet counters, and computation of RTT statistics over a sliding window.
+
+Third, when Raft and SENSE are executed on the DPU and the host runs only the
+UDP listener, host CPU usage drops to near baseline levels. On nodes 108 and
+110, CPU consumption is effectively indistinguishable from the baseline, showing
+that the UDP listener imposes negligible load.
+
+Overall, these observations confirm that host-resident telemetry introduces a
+nontrivial CPU cost, whereas offloading SENSE and Raft to the DPU effectively
+eliminates this overhead.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Graphics/baseline_raft_cpu_bars.png}
+    \caption{Host CPU usage under four configurations. Running SENSE on the host introduces a
+    telemetry tax of roughly 2\%--5\% CPU, while offloading SENSE and Raft to the DPU
+    reduces the host CPU usage to a negligible level.}
+    \label{fig:cpu-usage}
+\end{figure}
+
+\subsection{DPDK vs.\ TCP Round-Trip Latency}
+\label{subsec:latency}
+
+To contextualize the resource consumption results, we compare the RTT of a
+DPDK-based dataplane communication path with that of a traditional TCP channel
+between the same nodes.
+
+TCP RTT, measured using \texttt{hping3}, is on the order of milliseconds, with an
+average around 3~ms in our environment. In contrast, our custom DPDK probe
+achieves an RTT of about 30~\si{\micro\second}, representing an improvement of
+roughly two orders of magnitude.
+
+This microsecond-scale RTT highlights DPDK’s suitability for real-time telemetry
+extraction. Kernel-bypass messaging allows SENSE to capture fine-grained network
+signals that are difficult to observe through conventional TCP-based paths. While
+end-to-end application latency lies outside the scope of this evaluation, the RTT
+contrast illustrates the potential responsiveness gains when Raft and SENSE
+operate over a DPDK dataplane.
+
+\subsection{Analysis}
+\label{subsec:discussion}
+
+The experimental data supports several conclusions:
+
+\begin{itemize}
+    \item \textbf{Memory overhead remains low.} Despite fluctuations caused by the
+    shared cluster environment, memory usage does not differ meaningfully across
+    configurations. Raft and SENSE, whether host-resident or offloaded, do not place
+    significant additional pressure on memory resources.
+
+    \item \textbf{Host-side telemetry introduces a bounded CPU cost.} Running SENSE
+    on the host produces a consistent 2\%--5\% increase in CPU usage. This overhead
+    competes with application workloads and may affect latency-sensitive or
+    CPU-intensive services. These findings justify relocating telemetry tasks to the
+    DPU.
+
+    \item \textbf{Offloading effectively removes host CPU overhead.} When SENSE and
+    Raft run entirely on the DPU, and the host performs only UDP reception, CPU usage
+    on the host approaches baseline levels. This demonstrates the effectiveness of
+    leveraging heterogeneous hardware for offloading coordination and telemetry tasks.
+
+    \item \textbf{DPDK provides microsecond-scale visibility.} The RTT comparison
+    demonstrates that DPDK’s kernel-bypass path offers roughly 100$\times$ lower
+    latency than TCP. Such responsiveness is essential for high-frequency telemetry and
+    enables more reactive coordination in distributed systems.
+\end{itemize}
+
+In summary, the results show that host-side telemetry adds measurable CPU
+overhead, whereas offloading SENSE to the DPU largely eliminates this cost. The
+DPDK datapath further enables microsecond-level latency, supporting SENSE’s goal
+of providing timely, lightweight telemetry for modern distributed coordination.
+
+
+
+%The results section details your metrics and experiments for the assessment of your solution. It then provides experimental validation for your approach with visual aids such as data tables and graphs. In particular, it allows you to compare your idea with other approaches you've tested, for example solutions you've mentioned in your related work section.
+
+%\subsection{Experimentation protocol}
+
+%It is of the utmost importance to describe how you came up with the measurements and results that support your evaluation.
+
+%\subsection{Data tables}
+
+%Every data table should be numbered, have a brief description as its title, and specify the units used. 
+
+%%As an example, Table~\ref{tab:my_label} compares the average latencies of native application calls to networked services. The experiments were conducted on an Apple MacBook Air 2010 with a CPU speed of 1.4GHz and a bus speed of 800MHz. Each data point is a mean over 20 instances of each call, after discarding both the lowest and the highest measurement.
+
+%\begin{table}[ht]
+%    \centering
+%   \begin{tabular}{llr}
+%\hline
+%\multicolumn{2}{c}{Network Applications} \\
+%\cline{1-2}
+%Service    & Protocol & Latency (\si{\ms}) \\
+%\hline
+%DNS         & UDP       & \SI{13.65}{\ms}      \\
+%            & TCP       & \SI{0.01}{\ms}       \\
+%NTP         & UDP       & \SI{92.50}{\ms}      \\
+%SMTP        & TCP       & \SI{33.33}{\ms}      \\
+%HTTP        & TCP       & \SI{8.99}{\ms}       \\
+%\hline
+%\end{tabular}
+%    \caption{Comparison of latencies between services running on \texttt{localhost}.}
+%    \label{tab:my_label}
+%\end{table}
+
+%\subsection{Graphs}
+
+%Graphs are often the most important information in your report; you should design and plot them with great care. A graph contains a lot of information in a short space. Graphs should be numbered and have a title. Their axes should be labelled, with the quantities and units specified. Make sure that individual data points (your measurements) stand out clearly. And of course, always associate your graph with text that explains your results, and outlines the conclusions you draw from these results.
+
+%\begin{figure}
+%	\begin{center}
+%		\includegraphics[scale=0.9]{perf-plot-1.pdf}
+%	\end{center}
+%	\caption{Probability of including [k] faulty/malicious nodes in the service}
+%	\label{graph:faulty-proportion-plot}
+%\end{figure}
+
+%For example, Figure~\ref{graph:faulty-proportion-plot} compares the efficiency of three different service architectures in eliminating adversarial behaviors. Every data point gives the probability that $k$ faulty/malicious nodes managed to participate in a computation that involves 32 nodes. In the absence of at least one reliable node ($k = 32$), the failure will go undetected ; but the results show that this case is extremely unlikely, regardless of the architecture. The most significant result pertains to $k = 16$: the reliable nodes detect the failure, but cannot reach a majority to recover. The graph shows that the \texttt{CORPS 5\%} architecture is much more resilient than the \texttt{DHT 30\%} architecture, by a magnitude of $10^{11}$.
+
+
+\section{Discussion}
+\label{sec:discussion}
+
+Our current prototype of SENSE provides several insights into the practicality, benefits, and
+limitations of offloading network-layer telemetry and coordination logic to DPUs in modern distributed
+systems. Rather than restating the experimental results, this section reflects on the main challenges
+we encountered, compares our design with related work, and discusses why our findings should be
+interpreted as preliminary. We conclude with limitations of the current approach and directions we
+believe are worth exploring in future work.
+
+A first set of challenges came from the experimental environment and deployment constraints.
+Although our initial plan targeted CloudLab, hardware limitations on that platform forced us to move
+to the NYU Shanghai cluster and rely on a three-node setup with BlueField-2 DPUs. This migration
+required adjustments to deployment scripts and network setup but did not affect the core design of
+SENSE. However, the shared nature of the cluster introduced background interference into CPU and
+memory measurements. Even with more than 500 samples collected per experiment at 1 Hz, these
+external fluctuations make strong statistical conclusions difficult. Consequently, we interpret the
+observed patterns—such as the modest CPU cost of host-side telemetry and the stable memory
+footprint across configurations—as early qualitative indications rather than definitive performance
+characterizations.
+
+When comparing SENSE to existing approaches, an important distinction is where our system is
+positioned in the stack and what it aims to provide. Prior works on telemetry and offloading tend to
+focus on either in-band telemetry (INT) enhancements or offloading applications such as transactions,
+isolation layers, or cloud-native infrastructure to SmartNICs and DPUs. These systems generally target
+performance improvements within a single service. By contrast, SENSE aims to function as a reusable
+network-layer telemetry substrate that exposes packet-level and control-plane signals—such as RTT,
+queue occupancy, packet-loss indicators, and send/receive counters—as a general-purpose service for
+upper-layer protocols. The contribution lies in treating hardware-assisted telemetry not as an auxiliary
+component of a specific pipeline, but as a shared service that coordination protocols like Raft can query
+continuously and at low cost.
+
+At the same time, existing systems clearly outperform our prototype in several dimensions.
+INT-based systems typically support richer telemetry semantics, including hop-by-hop queue depth,
+switch-level path metadata, and programmable sampling strategies. SENSE currently reports a smaller
+set of dataplane signals such as RTT estimates, loss rate, and NIC queue occupancy, which limits the
+scope of the insights available to upper-layer protocols. Similarly, DPU execution environments such
+as iPipe or XPU-based infrastructures include scheduling, isolation, and multi-tenant abstractions,
+while our prototype targets a single Raft-oriented use case without addressing broader resource-sharing
+concerns on heterogeneous hardware. Finally, our host–DPU communication relies on UDP sockets,
+which introduces kernel overhead and restricts the latency benefits achievable in the offloaded mode,
+even though DPDK-based communication between nodes offers microsecond-scale RTTs in practice.
+
+Despite these limitations, the preliminary results highlight several qualitative advantages of SENSE.
+First, they show that shifting telemetry extraction and Raft logic to the DPU can meaningfully reduce
+host CPU pressure, with the host-side UDP listener consuming negligible additional overhead. This
+supports our original motivation of treating DPUs as heterogeneous compute units capable of absorbing
+the “telemetry tax” that would otherwise be paid by host applications. Second, the RTT comparison
+demonstrates that kernel-bypass datapaths allow SENSE to perceive fast-changing network conditions
+that conventional TCP-based paths cannot reveal. Such responsiveness is essential for designing more
+adaptive protocols—for example, protocols that adjust election timeouts based on moving-window RTT
+trends, modulate heartbeat frequency according to queue-occupancy thresholds, or detect leader degradation
+through persistent latency inflation. While our current system implements only a subset of these ideas,
+the RTT and queue signals we extract are precisely the inputs that such adaptive behaviors would rely on.
+
+The current prototype also exhibits several important limitations that constrain the generality of our
+conclusions. Telemetry is collected periodically rather than in an event-driven or interrupt-driven manner,
+which keeps overhead low but reduces sensitivity to traffic bursts and tail latency events. The system has
+only been evaluated on three nodes, and we have not yet integrated a realistic client workload such as
+YCSB to measure end-to-end latency or throughput. The Raft integration is limited to leader election
+and basic message handling, without full log replication, persistence, or dynamic membership—meaning
+that SENSE has not yet been validated as the foundation for a production-ready coordination layer.
+Finally, using UDP for host–DPU communication is a pragmatic choice under time constraints but is not
+ideal for mature offload architectures, as it bypasses neither the kernel nor socket-layer overheads.
+
+We also need to explain how our plan changed after the midterm report. These ideas were already
+outlined as milestones, and we refined them after discussions with the instructor. However, instability in
+the shared cluster—node failures, resource contention, and scheduling limitations—prevented us from
+running extended tests or scaling to more comprehensive experiments. As a result, we completed design
+work and partial integration but were unable to finish full implementation or evaluation. We therefore
+include these items as future directions rather than completed contributions.
+
+Given these constraints, several natural directions emerge for advancing SENSE. The first is to expand
+the experimental evaluation to include client-side metrics. Integrating YCSB under controlled load would
+allow us to study how DPU offloading affects tail latency and throughput in a replicated key-value store.
+A second direction is to broaden the set of telemetry signals that SENSE can extract. Adding queue-length
+histograms, congestion markers derived from NIC hardware counters, or windowed RTT distribution
+statistics could enable protocols to react not only to averages but also to variance, burst detection, and
+incipient congestion. These richer signals could support adaptive behaviors such as dynamic leader
+handoff, congestion-aware log replication pacing, or trigger-based rebalancing. Another direction is to
+improve the host–DPU communication channel. Replacing UDP with a kernel-bypass path—such as
+DPDK-to-DMA queue sharing, UIO/VFIO-backed ring buffers, or BlueField-specific shared-memory
+transport—would bring offloaded performance closer to the microsecond-scale RTTs achievable in the
+data plane. Finally, because SENSE aims to be a general telemetry service rather than a Raft-specific
+module, it should be evaluated with other coordination or control systems—such as Paxos variants,
+geo-distributed leader management, or load balancers—to test whether network-layer telemetry can
+serve as a reusable substrate for diverse distributed systems.
+
+Overall, our experience suggests that offloading network-layer telemetry to DPUs is both feasible and
+promising: it can significantly reduce host overhead while exposing fast, low-level network information to
+coordination protocols. At the same time, the current implementation and evaluation are intentionally
+modest. We view SENSE as an early exploration of a bottom-up, DPU-assisted telemetry service rather
+than a finished solution, with ample room for refinement in both system design and experimental
+methodology.
+
+
+
+%The discussion section focuses on the main challenges/issues you had to overcome during the project. Outline what your approach does better than the ones you mentioned in your related work, and explain why. Do the same with issues where other solutions  outperform your own. Are there limitations to your approach? If so, what would you recommend towards removing/mitigating them? Given the experience you've gathered working on this project, are there other approaches that you feel are worth exploring?
+
+
+
+\section{Conclusion}
+
+In this work, we studied the cost of host-side telemetry in distributed systems and built SENSE as
+a network-layer engine that extracts control-plane and data-plane signals. The prototype runs on
+both the host and the DPU and exposes a simple, unified interface to upper-layer services. Through
+this process, we gained a clearer understanding of the practical challenges involved in treating
+telemetry as a first-class system component. Implementing SENSE forced us to confront issues of
+data-path timing, resource interference, and offload boundaries, which in turn clarified which parts
+of the design are robust and which require further refinement. The overall design demonstrates
+that host monitoring can be shifted toward heterogeneous devices without altering interface
+semantics.
+
+Our evaluation is preliminary. The tests were conducted on a shared cluster and a small number
+of nodes, so the results should be interpreted as early indicators rather than conclusive
+measurements. Several aspects of our design were validated: offloading reduces host CPU usage,
+confirming our expectation that telemetry work competes with application logic when kept on the
+host; memory overhead remains light; and DPDK-based communication provides microsecond-scale
+RTT, supporting a dataplane-centric approach to telemetry. At the same time, the results also
+reveal uncertainty in multiple dimensions, including scalability, sensitivity to background load, and
+the limited ability of periodic telemetry to capture short bursts or tail events. A further limitation
+is that each configuration was executed only once due to node instability, preventing repeated
+measurements and making it difficult to assess variance or statistical confidence. These factors
+underscore the need for broader experiments and more mature communication paths between hosts
+and DPUs.
+
+Future work will expand the scope of the evaluation to larger clusters, realistic workloads, and
+richer telemetry signals. Another direction is to test SENSE with systems beyond Raft to determine
+whether the service abstraction can generalize across coordination mechanisms. More broadly, the
+project taught us that designing telemetry as a reusable substrate requires balancing simplicity,
+overhead, and hardware constraints—while recognizing that deployment conditions often matter as
+much as the underlying architecture. We expect that these insights will guide the next steps toward
+understanding how a general, low-cost telemetry service can support distributed systems at scale.
+
+\end{document}
